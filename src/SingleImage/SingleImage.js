@@ -1,30 +1,32 @@
-import React, { PureComponent } from 'react';
+import React, { PureComponent } from "react";
 import {
-  View, Text,
+  View,
+  Text,
   Animated,
   TouchableWithoutFeedback,
-  PanResponder, Image,
-  ScrollView, Modal,
-  StyleSheet, Dimensions,
-} from 'react-native';
-import SwipeableViews from 'react-swipeable-views-native';
-import PropTypes from 'prop-types';
-import ImageCustom from '../ImageCustom';
+  PanResponder,
+  Image,
+  ScrollView,
+  Modal,
+  StyleSheet,
+  Dimensions
+} from "react-native";
+import SwipeableViews from "react-swipeable-views-native";
+import PropTypes from "prop-types";
+import ImageCustom from "../ImageCustom";
 
 const ANIM_CONFIG = { duration: 200 };
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 
 export default class SingleImage extends PureComponent {
-
   static propTypes = {
     uri: PropTypes.string,
-    style:PropTypes.object,
-  }
+    style: PropTypes.object
+  };
 
   static defaultProps = {
-    uri: 'https://avatars2.githubusercontent.com/u/31804215?s=40&v=4',
-  }
-
+    uri: "https://avatars2.githubusercontent.com/u/31804215?s=40&v=4"
+  };
 
   constructor(props) {
     super(props);
@@ -34,18 +36,18 @@ export default class SingleImage extends PureComponent {
         x: 0,
         y: 0,
         width: 0,
-        height: 0,
+        height: 0
       },
       target: {
         x: 0,
         y: 0,
-        opacity: 1,
+        opacity: 1
       },
       fullscreen: false,
       animating: false,
       panning: false,
       selectedImageHidden: false,
-      slidesDown: false,
+      slidesDown: false
     };
     this.openAnim = new Animated.Value(0);
     this.pan = new Animated.Value(0);
@@ -67,22 +69,21 @@ export default class SingleImage extends PureComponent {
         }
       },
       onPanResponderRelease: this.handlePanEnd,
-      onPanResponderTerminate: this.handlePanEnd,
+      onPanResponderTerminate: this.handlePanEnd
     });
   }
 
-  animateOpenAnimToValue = (toValue, onComplete) => (
+  animateOpenAnimToValue = (toValue, onComplete) =>
     Animated.timing(this.openAnim, {
       ...ANIM_CONFIG,
-      toValue,
+      toValue
     }).start(() => {
       this.setState({ animating: false });
       if (onComplete) {
         onComplete();
       }
-    })
-  )
-  open = (index) => () => {
+    });
+  open = index => () => {
     const activeComponent = this.carouselItems[index].carouselItems[index];
     activeComponent.measure((rx, ry, width, height, x, y) => {
       this.setState(
@@ -91,32 +92,34 @@ export default class SingleImage extends PureComponent {
           animating: true,
           origin: { x, y, width, height },
           target: { x: 0, y: 0, opacity: 1 },
-          index: index - 1,
+          index: index - 1
         },
         () => {
           this.animateOpenAnimToValue(1);
         }
       );
     });
-  }
+  };
 
   close = () => {
     this.setState({ animating: true });
-    this.carouselItems[this.state.index + 1].carouselItems[this.state.index + 1].measure((rx, ry, width, height, x, y) => {
+    this.carouselItems[this.state.index + 1].carouselItems[
+      this.state.index + 1
+    ].measure((rx, ry, width, height, x, y) => {
       this.setState({
         origin: { x, y, width, height },
-        slidesDown: x + width < 0 || x > width,
+        slidesDown: x + width < 0 || x > width
       });
 
       this.animateOpenAnimToValue(0, () => {
         this.setState({
           fullscreen: false,
           selectedImageHidden: false,
-          slidesDown: false,
+          slidesDown: false
         });
       });
     });
-  }
+  };
   handlePanEnd = (evt, gestureState) => {
     if (Math.abs(gestureState.dy) > 50) {
       this.setState({
@@ -124,17 +127,17 @@ export default class SingleImage extends PureComponent {
         target: {
           x: gestureState.dx,
           y: gestureState.dy,
-          opacity: 1 - Math.abs(gestureState.dy / height),
-        },
+          opacity: 1 - Math.abs(gestureState.dy / height)
+        }
       });
       this.close();
     } else {
       Animated.timing(this.pan, {
         toValue: 0,
-        ...ANIM_CONFIG,
+        ...ANIM_CONFIG
       }).start(() => this.setState({ panning: false }));
     }
-  }
+  };
 
   getFullscreenOpacity = () => {
     const { panning, target } = this.state;
@@ -142,25 +145,25 @@ export default class SingleImage extends PureComponent {
     return {
       opacity: panning
         ? this.pan.interpolate({
-          inputRange: [-height, 0, height],
-          outputRange: [0, 1, 0],
-        })
+            inputRange: [-height, 0, height],
+            outputRange: [0, 1, 0]
+          })
         : this.openAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0, target.opacity],
-        }),
+            inputRange: [0, 1],
+            outputRange: [0, target.opacity]
+          })
     };
   };
   captureCarouselItem = (ref, idx) => {
     this.carouselItems[idx] = ref;
-  }
+  };
   handleModalShow = () => {
     const { animating, selectedImageHidden } = this.state;
 
     if (!selectedImageHidden && animating) {
       this.setState({ selectedImageHidden: true });
     }
-  }
+  };
   getSwipeableStyle = () => {
     const { fullscreen, origin, slidesDown, target } = this.state;
 
@@ -172,52 +175,56 @@ export default class SingleImage extends PureComponent {
 
     return !slidesDown
       ? {
-        left: this.openAnim.interpolate({
-          inputRange,
-          outputRange: [origin.x, target.x],
-        }),
-        top: this.openAnim.interpolate({
-          inputRange,
-          outputRange: [origin.y, target.y],
-        }),
-        width: this.openAnim.interpolate({
-          inputRange,
-          outputRange: [origin.width, width],
-        }),
-        height: this.openAnim.interpolate({
-          inputRange,
-          outputRange: [origin.height, height],
-        }),
-      }
+          left: this.openAnim.interpolate({
+            inputRange,
+            outputRange: [origin.x, target.x]
+          }),
+          top: this.openAnim.interpolate({
+            inputRange,
+            outputRange: [origin.y, target.y]
+          }),
+          width: this.openAnim.interpolate({
+            inputRange,
+            outputRange: [origin.width, width]
+          }),
+          height: this.openAnim.interpolate({
+            inputRange,
+            outputRange: [origin.height, height]
+          })
+        }
       : {
-        left: 0,
-        right: 0,
-        height,
-        top: this.openAnim.interpolate({
-          inputRange,
-          outputRange: [height, target.y],
-        }),
-      };
+          left: 0,
+          right: 0,
+          height,
+          top: this.openAnim.interpolate({
+            inputRange,
+            outputRange: [height, target.y]
+          })
+        };
   };
 
   renderDefaultHeader = () => (
     <TouchableWithoutFeedback onPress={this.close}>
       <View>
-        <Text style={{
-          color: 'white',
-          textAlign: 'right',
-          padding: 10,
-          margin: 30,
-        }}>Close</Text>
+        <Text
+          style={{
+            color: "white",
+            textAlign: "right",
+            padding: 10,
+            margin: 30
+          }}
+        >
+          Fechar
+        </Text>
       </View>
     </TouchableWithoutFeedback>
-  )
+  );
 
-  renderFullscreenContent = (url) => () => {
+  renderFullscreenContent = url => () => {
     const { panning } = this.state;
     const containerStyle = [
       this.getSwipeableStyle(),
-      panning && { top: this.pan },
+      panning && { top: this.pan }
     ];
     return (
       <Animated.View style={containerStyle} k>
@@ -233,13 +240,13 @@ export default class SingleImage extends PureComponent {
         >
           <Image
             source={{ uri: url }}
-            style={[{ flex: 1 }, { resizeMode: 'contain' }]}
+            style={[{ flex: 1 }, { resizeMode: "contain" }]}
             {...this.panResponder.panHandlers}
           />
         </ScrollView>
       </Animated.View>
     );
-  }
+  };
   renderFullscreen = () => {
     const { animating, panning, fullscreen } = this.state;
     const opacity = this.getFullscreenOpacity();
@@ -251,62 +258,71 @@ export default class SingleImage extends PureComponent {
         onShow={this.handleModalShow}
         onRequestClose={this.close}
       >
-        <Animated.View style={[{
-          ...StyleSheet.absoluteFillObject,
-          backgroundColor: 'black',
-        }, opacity]} />
+        <Animated.View
+          style={[
+            {
+              ...StyleSheet.absoluteFillObject,
+              backgroundColor: "black"
+            },
+            opacity
+          ]}
+        />
         <SwipeableViews
           disabled={animating || panning}
           index={this.state.index}
-          onChangeIndex={(index) => {
+          onChangeIndex={index => {
             this.setState({
-              index,
+              index
             });
           }}
         >
           {this.renderFullscreenContent(uri)()}
         </SwipeableViews>
-        <Animated.View style={[opacity, {
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-        }]}>
+        <Animated.View
+          style={[
+            opacity,
+            {
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0
+            }
+          ]}
+        >
           {this.renderDefaultHeader()}
         </Animated.View>
       </Modal>
     );
-  }
-
-
+  };
 
   render() {
-    const {
-      fullscreen,
-      selectedImageHidden,
-      index,
-      
-    } = this.state;
-    const { uri,style } = this.props;
+    const { fullscreen, selectedImageHidden, index } = this.state;
+    const { uri, style } = this.props;
     const getOpacity = () => ({
-      opacity: selectedImageHidden ? 0 : 1,
+      opacity: selectedImageHidden ? 0 : 1
     });
     return (
       <View>
-        <TouchableWithoutFeedback onPress={this.open(1)} >
+        <TouchableWithoutFeedback onPress={this.open(1)}>
           <View style={index + 1 === 1 ? getOpacity() : null}>
             <ImageCustom
               url={uri}
-              style={[{ resizeMode: 'cover', height: '100%', width: '100%', borderRadius: 8 },style]}
+              style={[
+                {
+                  resizeMode: "cover",
+                  height: "100%",
+                  width: "100%",
+                  borderRadius: 8
+                },
+                style
+              ]}
               ref={ref => this.captureCarouselItem(ref, index + 1)}
               index={index + 1}
             />
           </View>
         </TouchableWithoutFeedback>
         {fullscreen && this.renderFullscreen()}
-      </View >
+      </View>
     );
   }
 }
-
-
